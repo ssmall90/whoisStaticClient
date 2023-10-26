@@ -75,10 +75,34 @@ static void ProcessCommand(string command)
 
     else if (update == null)
     {
+        DataBase.Add(command.Split("?")[0], new User
+        {
+            UserID = "command",
+            Surname = "",
+            Fornames = "",
+            Title = "",
+            Position = "",
+            Phone = "",
+            Email = "",
+            Location = "Unknown"
+        });
+
         Lookup(ID, field);
     }
     else
     {
+        DataBase.Add(command.Split("?")[0], new User
+        {
+            UserID = "command",
+            Surname = "",
+            Fornames = "",
+            Title = "",
+            Position = "",
+            Phone = "",
+            Email = "",
+            Location =""
+        });
+        update = command.Split("=")[1];
         Update(ID, field, update);
     }
 
