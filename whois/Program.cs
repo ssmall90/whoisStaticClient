@@ -57,10 +57,22 @@ static void ProcessCommand(string command)
         if (pieces.Length == 2) update = pieces[1];
     }
 
-    if (operation == null)
+    if (operation == null || operation == string.Empty)
     {
+        DataBase.Add(command, new User
+        {
+            UserID = "command",
+            Surname = "",
+            Fornames = "",
+            Title = "",
+            Position = "",
+            Phone = "",
+            Email = "",
+            Location = ""
+        });
         Dump(ID);
     }
+
     else if (update == null)
     {
         Lookup(ID, field);
@@ -72,6 +84,8 @@ static void ProcessCommand(string command)
 
     void Dump(String ID)
     {
+
+        
         if (debug) Console.WriteLine("output all fields");
         Console.WriteLine($"UserID={DataBase[ID].UserID}");
         Console.WriteLine($"Surname={DataBase[ID].Surname}");
