@@ -183,7 +183,7 @@ void ProcessCommand(string command)
 
     else
     {
-        string newID = command.Split(" ")[1].Split("?")[0];
+        string newID = command.Split("?")[0];
         DataBase.Add(newID, new User
         {
             UserID = newID,
@@ -239,7 +239,7 @@ void Lookup(String ID, String field)
     }
     else
     {
-        Console.WriteLine("This user does not exist");
+        Console.WriteLine("User does not exist");
     }
  
 }
@@ -269,11 +269,6 @@ void Update(String ID, String field, String update)
         }
     }
 
-
-    foreach (var user in DataBase)
-    {
-        Console.WriteLine(user.Key + ": " + user.Value.UserID + " " + user.Value.Location);
-    }
 
     Console.WriteLine("OK");
 }
