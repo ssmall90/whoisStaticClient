@@ -1,13 +1,29 @@
 ﻿
 using Microsoft.VisualBasic;
+using System.Net.Sockets;
+using System.Reflection.Metadata.Ecma335;
 using whois;
+//sw.WriteLine(line);   Need to remove this line after testing
+//sw.Flush();           Need to remove this line after testing 
+
+Boolean debug = true;
+
+Dictionary<string, User> DataBase = new Dictionary<string, User>
+{
+  {"cssbct",
+   new User {UserID="cssbct",Surname="Tompsett",Fornames="Brian C",Title="Eur Ing",
+            Position="Lecturer of Computer Science",
+            Phone="+44 1482 46 5222",Email="B.C.Tompsett@hull.ac.uk",Location="in RB-336" }
+   }
+};
 
 
 
 if (args.Length == 0)
 {
     Console.WriteLine("Starting Server....");
-    RunServer();
+    //RunServer();
+    ProcessCommand(Console.ReadLine());
 }
 else
 {
@@ -17,23 +33,103 @@ else
     }
 }
 
-static void RunServer()
+ void RunServer()
 {
-    // At the moment we do not have a server
+    TcpListener listener;
+    Socket connection;
+    NetworkStream socketStream;
+    try
+    {
+        listener = new TcpListener(43);
+        listener.Start();
+
+        while (true)
+        {
+            connection = listener.AcceptSocket();
+            socketStream = new NetworkStream(connection);
+            doRequest(socketStream);
+            socketStream.Close();
+            connection.Close();
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine(ex.ToString());
+        
+    }
+    if (debug)
+    {
+        Console.WriteLine("Terminating Server");
+    }
+
+
 }
 
-static void ProcessCommand(string command)
+void doRequest(NetworkStream socketStream)
 {
-    Boolean debug = true;
+    StreamWriter sw = new StreamWriter(socketStream);
+    StreamReader sr = new StreamReader(socketStream);
 
-    Dictionary<string, User> DataBase = new Dictionary<string, User>
+    if (debug) Console.WriteLine("Waiting for input from client...");
+
+    String line = sr.ReadLine();
+    Console.WriteLine($"Received Network Command: '{line}'");
+
+    if (line == "POST / HTTP/1.1")
+    {
+        if (debug)
+        {
+            Console.WriteLine("Received an update request");
+        }
+
+    }
+    else if (line.StartsWith("GET /?name=") && line.EndsWith(" HTTP/1.1"))
+    {
+
+        String[] slices = line.Split(" ");  // Split into 3 pieces
+        String ID = slices[1].Substring(7);  // start at the 7th letter of the middle slice - skip `/?name=
+
+        if (DataBase.ContainsKey(ID))
+        {
+            String result = DataBase[ID].Location;
+            sw.WriteLine("HTTP/1.1 200 OK");
+            sw.WriteLine("Content-Type: text/plain");
+            sw.WriteLine();
+            sw.WriteLine(result);
+            sw.Flush();
+            Console.WriteLine($"Performed Lookup on '{ID}' returning '{result}'");
+        }
+        else
+        {
+            sw.WriteLine("HTTP/1.1 404 Not Found");
+            sw.WriteLine("Content-Type: text/plain");
+            sw.WriteLine();
+            sw.Flush();
+            Console.WriteLine($"Performed Lookup on '{ID}' returning '404 Not Found'");
+        }
+       
+    }
+    else
+    {
+        // We have an error
+        Console.WriteLine($"Unrecognised command: '{line}'");
+        sw.WriteLine("HTTP/1.1 400 Bad Request");
+        sw.WriteLine("Content-Type: text/plain");
+        sw.WriteLine();
+        sw.Flush();
+    }
+
+    
+
+
+
+
+
+
+}
+
+void ProcessCommand(string command)
 {
-  {"cssbct",
-   new User {UserID="cssbct",Surname="Tompsett",Fornames="Brian C",Title="Eur Ing",
-            Position="Lecturer of Computer Science",
-            Phone="+44 1482 46 5222",Email="B.C.Tompsett@hull.ac.uk",Location="in RB-336" }
-   }
-};
 
     //G:\551457\whois\bin\Debug\net6.0 >
 
@@ -59,9 +155,38 @@ static void ProcessCommand(string command)
 
     if (operation == null || operation == string.Empty)
     {
-        DataBase.Add(command, new User
+
+        for(int i = 0; i < DataBase.Count; i++)
         {
-            UserID = "command",
+            if (DataBase.ContainsKey(ID) )
+            {
+                Dump(ID);
+            }
+            else
+            {
+
+                Console.WriteLine("User does not exist");
+
+                break;
+            }
+        }
+
+
+    }
+
+    else if (update == null)
+    {
+
+
+        Lookup(ID, field);
+    }
+
+    else
+    {
+        string newID = command.Split(" ")[1].Split("?")[0];
+        DataBase.Add(newID, new User
+        {
+            UserID = newID,
             Surname = "",
             Fornames = "",
             Title = "",
@@ -70,59 +195,31 @@ static void ProcessCommand(string command)
             Email = "",
             Location = ""
         });
-        Dump(ID);
-    }
-
-    else if (update == null)
-    {
-        DataBase.Add(command.Split("?")[0], new User
-        {
-            UserID = "command",
-            Surname = "",
-            Fornames = "",
-            Title = "",
-            Position = "",
-            Phone = "",
-            Email = "",
-            Location = "Unknown"
-        });
-
-        Lookup(ID, field);
-    }
-    else
-    {
-        DataBase.Add(command.Split("?")[0], new User
-        {
-            UserID = "command",
-            Surname = "",
-            Fornames = "",
-            Title = "",
-            Position = "",
-            Phone = "",
-            Email = "",
-            Location =""
-        });
         update = command.Split("=")[1];
-        Update(ID, field, update);
-    }
-
-    void Dump(String ID)
-    {
-
-        
-        if (debug) Console.WriteLine("output all fields");
-        Console.WriteLine($"UserID={DataBase[ID].UserID}");
-        Console.WriteLine($"Surname={DataBase[ID].Surname}");
-        Console.WriteLine($"Fornames={DataBase[ID].Fornames}");
-        Console.WriteLine($"Title={DataBase[ID].Title}");
-        Console.WriteLine($"Position={DataBase[ID].Position}");
-        Console.WriteLine($"Phone={DataBase[ID].Phone}");
-        Console.WriteLine($"Email={DataBase[ID].Email}");
-        Console.WriteLine($"location={DataBase[ID].Location}");
+        Update(newID, field, update);
     }
 
 
-    void Lookup(String ID, String field)
+}
+
+void Dump(String ID)
+{
+
+
+    if (debug) Console.WriteLine("output all fields");
+    Console.WriteLine($"UserID={DataBase[ID].UserID}");
+    Console.WriteLine($"Surname={DataBase[ID].Surname}");
+    Console.WriteLine($"Fornames={DataBase[ID].Fornames}");
+    Console.WriteLine($"Title={DataBase[ID].Title}");
+    Console.WriteLine($"Position={DataBase[ID].Position}");
+    Console.WriteLine($"Phone={DataBase[ID].Phone}");
+    Console.WriteLine($"Email={DataBase[ID].Email}");
+    Console.WriteLine($"location={DataBase[ID].Location}");
+}
+
+void Lookup(String ID, String field)
+{
+    if (DataBase.ContainsKey(ID) )
     {
         if (debug)
             Console.WriteLine($" lookup field '{field}'");
@@ -140,9 +237,17 @@ static void ProcessCommand(string command)
         }
         Console.WriteLine(result);
     }
+    else
+    {
+        Console.WriteLine("This user does not exist");
+    }
+ 
+}
 
+void Update(String ID, String field, String update)
+{
 
-    void Update(String ID, String field, String update)
+    if(DataBase.ContainsKey(ID))
     {
         if (debug)
             Console.WriteLine($" update field '{field}' to '{update}'");
@@ -157,8 +262,19 @@ static void ProcessCommand(string command)
             case "Position": DataBase[ID].Position = update; break;
             case "Email": DataBase[ID].Email = update; break;
         }
-        Console.WriteLine("OK");
-    }
-}
 
+        foreach (var user in DataBase)
+        {
+            Console.WriteLine(user.Key + ": " + user.Value.UserID + " " + user.Value.Location);
+        }
+    }
+
+
+    foreach (var user in DataBase)
+    {
+        Console.WriteLine(user.Key + ": " + user.Value.UserID + " " + user.Value.Location);
+    }
+
+    Console.WriteLine("OK");
+}
 
