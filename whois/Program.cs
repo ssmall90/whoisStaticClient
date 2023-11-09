@@ -13,7 +13,7 @@ Dictionary<string, User> DataBase = new Dictionary<string, User>
   {"cssbct",
    new User {UserID="cssbct",Surname="Tompsett",Forenames="Brian C",Title="Eur Ing",
             Position="Lecturer of Computer Science",
-            Phone="+44 1482 46 5222",Email="B.C.Tompsett@hull.ac.uk",Location="in RB-336" }
+            Phone="+44 1482 46 5222",Email="B.C.Tompsett@hull.ac.uk",Location="in RB-336" } 
    }
 };
 
