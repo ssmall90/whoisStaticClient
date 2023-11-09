@@ -24,7 +24,7 @@ if (args.Length == 0)
     do
     {
         Console.WriteLine("Starting Server....");
-        //RunServer();
+        RunServer();
         ProcessCommand(Console.ReadLine());
     }
     while (true);
@@ -51,6 +51,8 @@ else
         while (true)
         {
             connection = listener.AcceptSocket();
+            connection.SendTimeout = 1000;
+            connection.ReceiveTimeout = 1000;
             socketStream = new NetworkStream(connection);
             doRequest(socketStream);
             socketStream.Close();
@@ -77,139 +79,160 @@ void doRequest(NetworkStream socketStream)
 
     if (debug) Console.WriteLine("Waiting for input from client...");
 
-    String line = sr.ReadLine();
-    Console.WriteLine($"Received Network Command: '{line}'");
-
-    if (line == "POST / HTTP/1.1")
+    try
     {
-        if (debug)
+        String line = sr.ReadLine();
+
+        if (line == null)
         {
-            Console.WriteLine("Received an update request");
+            if (debug) Console.WriteLine("Ignoring null command");
+            return;
         }
 
-    }
-    else if (line.StartsWith("GET /?name=") && line.EndsWith(" HTTP/1.1"))
-    {
+        Console.WriteLine($"Received Network Command: '{line}'");
 
-        String[] slices = line.Split(" ");  // Split into 3 pieces
-        String ID = slices[1].Substring(7);  // start at the 7th letter of the middle slice - skip `/?name=
-
-        if (DataBase.ContainsKey(ID))
+        if (line == "POST / HTTP/1.1")
         {
-            String result = DataBase[ID].Location;
-            sw.WriteLine("HTTP/1.1 200 OK");
-            sw.WriteLine("Content-Type: text/plain");
-            sw.WriteLine();
-            sw.WriteLine(result);
-            sw.Flush();
-            Console.WriteLine($"Performed Lookup on '{ID}' returning '{result}'");
+            int contentLength = 0;
+
+            while (line != "")
+            {
+                if (line.StartsWith("Content-Length: "))
+                {
+                    contentLength = Int32.Parse(line.Substring(16));
+                }
+
+                line = sr.ReadLine();
+                if (debug) Console.WriteLine($"Skipped Header Line: '{line}'");
+            }
+
+            String[] slices = line.Split(new char[] { '&' }, 2);
+            String ID = slices[0].Substring(5);
+            String value = slices[1].Substring(9);
+
+            if (debug) Console.WriteLine($"Received an update request for '{ID}' to '{value}'");
+
+
+        }
+        else if (line.StartsWith("GET /?name=") && line.EndsWith(" HTTP/1.1"))
+        {
+
+            String[] slices = line.Split(" ");  // Split into 3 pieces
+            String ID = slices[1].Substring(7);  // start at the 7th letter of the middle slice - skip `/?name=
+
+            if (DataBase.ContainsKey(ID))
+            {
+                String result = DataBase[ID].Location;
+                sw.WriteLine("HTTP/1.1 200 OK");
+                sw.WriteLine("Content-Type: text/plain");
+                sw.WriteLine();
+                sw.WriteLine(result);
+                sw.Flush();
+                Console.WriteLine($"Performed Lookup on '{ID}' returning '{result}'");
+            }
+            else
+            {
+                sw.WriteLine("HTTP/1.1 404 Not Found");
+                sw.WriteLine("Content-Type: text/plain");
+                sw.WriteLine();
+                sw.Flush();
+                Console.WriteLine($"Performed Lookup on '{ID}' returning '404 Not Found'");
+            }
+
         }
         else
         {
-            sw.WriteLine("HTTP/1.1 404 Not Found");
+            // We have an error
+            Console.WriteLine($"Unrecognised command: '{line}'");
+            sw.WriteLine("HTTP/1.1 400 Bad Request");
             sw.WriteLine("Content-Type: text/plain");
             sw.WriteLine();
             sw.Flush();
-            Console.WriteLine($"Performed Lookup on '{ID}' returning '404 Not Found'");
         }
-       
+
     }
-    else
+    catch(Exception ex)
     {
-        // We have an error
-        Console.WriteLine($"Unrecognised command: '{line}'");
-        sw.WriteLine("HTTP/1.1 400 Bad Request");
-        sw.WriteLine("Content-Type: text/plain");
-        sw.WriteLine();
-        sw.Flush();
+        Console.WriteLine($"Fault in Command Processing: {ex.ToString()}");
     }
+    finally
+    {
+        sw.Close();
+        sr.Close();
 
-    
-
-
-
-
-
+    }
 
 }
 
 void ProcessCommand(string command)
 {
-
-    //G:\551457\whois\bin\Debug\net6.0 >
-
-    //  command - whois cssbct "cssbct?location=In The Lab" 123456 ? location
-    //  cssbct
-    //  cssbct? location = In The Lab
-    //  123456 ? location
-
-    Console.WriteLine($"\nCommand: {command}");
-    String[] slice = command.Split(new char[] { '?' }, 2);
-    String ID = slice[0];
-    String operation = null;
-    String update = null;
-    String field = null;
-
-    if (slice.Length == 2)
+    try
     {
-        operation = slice[1];
-        String[] pieces = operation.Split(new char[] { '=' }, 2);
-        field = pieces[0];
-        if (pieces.Length == 2) update = pieces[1];
-    }
+        Console.WriteLine($"\nCommand: {command}");
+        String[] slice = command.Split(new char[] { '?' }, 2);
+        String ID = slice[0];
+        String operation = null;
+        String update = null;
+        String field = null;
 
-    if (operation == null || operation == string.Empty)
-    {
+        if (slice.Length == 2)
+        {
+            operation = slice[1];
+            String[] pieces = operation.Split(new char[] { '=' }, 2);
+            field = pieces[0];
+            if (pieces.Length == 2) update = pieces[1];
+        }
 
+        if (operation == null || operation == string.Empty)
+        {
 
-            if (DataBase.ContainsKey(ID) )
+            if (DataBase.ContainsKey(ID))
             {
                 Dump(ID);
             }
             else
             {
-
-                Console.WriteLine("User does not exist");
-
+                 Console.WriteLine("User does not exist");
             }
-        
-
-
-    }
-
-    else if (update == null)
-    {
-
-
-        Lookup(ID, field);
-    }
-
-    else
-    {
-        if (!DataBase.ContainsKey(ID))
-        {
-            string newID = command.Split("?")[0];
-            DataBase.Add(newID, new User
-            {
-                UserID = newID,
-                Surname = "",
-                Forenames = "",
-                Title = "",
-                Position = "",
-                Phone = "",
-                Email = "",
-                Location = ""
-            });
-            update = command.Split("=")[1];
-            Update(newID, field, update);
-
         }
+
+        else if (update == null)
+        {
+            Lookup(ID, field);
+        }
+
         else
         {
-            update = command.Split("=")[1];
-            Update(ID, field, update);
-        }
+            if (!DataBase.ContainsKey(ID))
+            {
+                string newID = command.Split("?")[0];
+                DataBase.Add(newID, new User
+                {
+                    UserID = newID,
+                    Surname = "",
+                    Forenames = "",
+                    Title = "",
+                    Position = "",
+                    Phone = "",
+                    Email = "",
+                    Location = ""
+                });
+                update = command.Split("=")[1];
+                Update(newID, field, update);
 
+            }
+            else
+            {
+                update = command.Split("=")[1];
+                Update(ID, field, update);
+            }
+
+        }
+    }
+
+    catch (Exception e)
+    {
+        Console.WriteLine($"Fault in Command Processing: {e.ToString()}");
     }
 
 
@@ -276,10 +299,9 @@ void Update(String ID, String field, String update)
             case "email": DataBase[ID].Email = update; field = DataBase[ID].Email; break;
         }
 
-        foreach (var user in DataBase)
-        {
-            Console.WriteLine(user.Key + ": " + user.Value.UserID + " " + field);
-        }
+
+
+        Console.WriteLine(DataBase[ID].UserID + " " + field);
     }
 
 
