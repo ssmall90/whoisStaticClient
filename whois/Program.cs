@@ -17,10 +17,11 @@ Dictionary<string, User> DataBase = new Dictionary<string, User>
    }
 };
 
-
+Console.WriteLine($"Number of command line arguments: {args.Length}");
 
 if (args.Length == 0)
 {
+    Console.WriteLine("args empty");
     do
     {
         Console.WriteLine("Starting Server....");
@@ -51,8 +52,8 @@ else
         while (true)
         {
             connection = listener.AcceptSocket();
-            connection.SendTimeout = 1000;
-            connection.ReceiveTimeout = 1000;
+            //connection.SendTimeout = 1000;
+            //connection.ReceiveTimeout = 1000;
             socketStream = new NetworkStream(connection);
             doRequest(socketStream);
             socketStream.Close();
