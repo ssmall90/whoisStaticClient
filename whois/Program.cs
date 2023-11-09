@@ -11,7 +11,7 @@ Boolean debug = true;
 Dictionary<string, User> DataBase = new Dictionary<string, User>
 {
   {"cssbct",
-   new User {UserID="cssbct",Surname="Tompsett",Fornames="Brian C",Title="Eur Ing",
+   new User {UserID="cssbct",Surname="Tompsett",Forenames="Brian C",Title="Eur Ing",
             Position="Lecturer of Computer Science",
             Phone="+44 1482 46 5222",Email="B.C.Tompsett@hull.ac.uk",Location="in RB-336" }
    }
@@ -21,9 +21,14 @@ Dictionary<string, User> DataBase = new Dictionary<string, User>
 
 if (args.Length == 0)
 {
-    Console.WriteLine("Starting Server....");
-    //RunServer();
-    ProcessCommand(Console.ReadLine());
+    do
+    {
+        Console.WriteLine("Starting Server....");
+        //RunServer();
+        ProcessCommand(Console.ReadLine());
+    }
+    while (true);
+
 }
 else
 {
@@ -156,8 +161,7 @@ void ProcessCommand(string command)
     if (operation == null || operation == string.Empty)
     {
 
-        for(int i = 0; i < DataBase.Count; i++)
-        {
+
             if (DataBase.ContainsKey(ID) )
             {
                 Dump(ID);
@@ -167,9 +171,8 @@ void ProcessCommand(string command)
 
                 Console.WriteLine("User does not exist");
 
-                break;
             }
-        }
+        
 
 
     }
@@ -183,20 +186,30 @@ void ProcessCommand(string command)
 
     else
     {
-        string newID = command.Split("?")[0];
-        DataBase.Add(newID, new User
+        if (!DataBase.ContainsKey(ID))
         {
-            UserID = newID,
-            Surname = "",
-            Fornames = "",
-            Title = "",
-            Position = "",
-            Phone = "",
-            Email = "",
-            Location = ""
-        });
-        update = command.Split("=")[1];
-        Update(newID, field, update);
+            string newID = command.Split("?")[0];
+            DataBase.Add(newID, new User
+            {
+                UserID = newID,
+                Surname = "",
+                Forenames = "",
+                Title = "",
+                Position = "",
+                Phone = "",
+                Email = "",
+                Location = ""
+            });
+            update = command.Split("=")[1];
+            Update(newID, field, update);
+
+        }
+        else
+        {
+            update = command.Split("=")[1];
+            Update(ID, field, update);
+        }
+
     }
 
 
@@ -209,7 +222,7 @@ void Dump(String ID)
     if (debug) Console.WriteLine("output all fields");
     Console.WriteLine($"UserID={DataBase[ID].UserID}");
     Console.WriteLine($"Surname={DataBase[ID].Surname}");
-    Console.WriteLine($"Fornames={DataBase[ID].Fornames}");
+    Console.WriteLine($"Forenames={DataBase[ID].Forenames}");
     Console.WriteLine($"Title={DataBase[ID].Title}");
     Console.WriteLine($"Position={DataBase[ID].Position}");
     Console.WriteLine($"Phone={DataBase[ID].Phone}");
@@ -224,16 +237,16 @@ void Lookup(String ID, String field)
         if (debug)
             Console.WriteLine($" lookup field '{field}'");
         String result = null;
-        switch (field)
+        switch (field.ToLower())
         {
             case "location": result = DataBase[ID].Location; break;
-            case "UserID": result = DataBase[ID].UserID; break;
-            case "Surname": result = DataBase[ID].Surname; break;
-            case "Fornames": result = DataBase[ID].Fornames; break;
-            case "Title": result = DataBase[ID].Title; break;
-            case "Phone": result = DataBase[ID].Phone; break;
-            case "Position": result = DataBase[ID].Position; break;
-            case "Email": result = DataBase[ID].Email; break;
+            case "userid": result = DataBase[ID].UserID; break;
+            case "surname": result = DataBase[ID].Surname; break;
+            case "forenames": result = DataBase[ID].Forenames; break;
+            case "title": result = DataBase[ID].Title; break;
+            case "phone": result = DataBase[ID].Phone; break;
+            case "position": result = DataBase[ID].Position; break;
+            case "email": result = DataBase[ID].Email; break;
         }
         Console.WriteLine(result);
     }
@@ -251,21 +264,21 @@ void Update(String ID, String field, String update)
     {
         if (debug)
             Console.WriteLine($" update field '{field}' to '{update}'");
-        switch (field)
+        switch (field.ToLower())
         {
-            case "location": DataBase[ID].Location = update; break;
-            case "UserID": DataBase[ID].UserID = update; break;
-            case "Surname": DataBase[ID].Surname = update; break;
-            case "Fornames": DataBase[ID].Fornames = update; break;
-            case "Title": DataBase[ID].Title = update; break;
-            case "Phone": DataBase[ID].Phone = update; break;
-            case "Position": DataBase[ID].Position = update; break;
-            case "Email": DataBase[ID].Email = update; break;
+            case "location": DataBase[ID].Location = update; field = DataBase[ID].Location; break;
+            case "userid": DataBase[ID].UserID = update; field = DataBase[ID].UserID; break;
+            case "surname": DataBase[ID].Surname = update; field = DataBase[ID].Surname; break;
+            case "forenames": DataBase[ID].Forenames = update; field = DataBase[ID].Forenames; break;
+            case "title": DataBase[ID].Title = update; field = DataBase[ID].Title; break;
+            case "phone": DataBase[ID].Phone = update; field = DataBase[ID].Phone; break;
+            case "position": DataBase[ID].Position = update; field = DataBase[ID].Position; break;
+            case "email": DataBase[ID].Email = update; field = DataBase[ID].Email; break;
         }
 
         foreach (var user in DataBase)
         {
-            Console.WriteLine(user.Key + ": " + user.Value.UserID + " " + user.Value.Location);
+            Console.WriteLine(user.Key + ": " + user.Value.UserID + " " + field);
         }
     }
 

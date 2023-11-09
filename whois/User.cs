@@ -11,7 +11,7 @@ namespace whois
         public User() { }
         public String UserID { get; set; }
         public String Surname { get; set; }
-        public String Fornames { get; set; }
+        public String Forenames { get; set; }
         public String Title { get; set; }
         public String Position { get; set; }
         public String Phone { get; set; }
@@ -21,7 +21,7 @@ namespace whois
          public User(
              String userID,
              String surname,
-             String fornames,
+             String forenames,
              String title,
              String position,
              String phone,
@@ -30,7 +30,7 @@ namespace whois
         {
             UserID = userID;
             Surname = surname;
-            Fornames = fornames;
+            Forenames = forenames;
             Title = title;
             Position = position;
             Phone = phone;
